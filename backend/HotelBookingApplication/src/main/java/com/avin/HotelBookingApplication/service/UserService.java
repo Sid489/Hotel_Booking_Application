@@ -1,6 +1,5 @@
 package com.avin.HotelBookingApplication.service;
 
-
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,7 +15,6 @@ import com.avin.HotelBookingApplication.repository.UserRepository;
 import java.util.Collections;
 import java.util.List;
 
-
 @Service
 @RequiredArgsConstructor
 public class UserService implements IUserService {
@@ -26,12 +24,17 @@ public class UserService implements IUserService {
 
     @Override
     public User registerUser(User user) {
-        if (userRepository.existsByEmail(user.getEmail())){
+        if (userRepository.existsByEmail(user.getEmail())) {
             throw new UserAlreadyExistsException(user.getEmail() + " already exists");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         System.out.println(user.getPassword());
-        Role userRole = roleRepository.findByName("ROLE_USER").get();
+
+        Role userRole = roleRepository.findByName("ROLE_USER").orElseGet(() -> {
+            Role newRole = new Role("ROLE_USER");
+            return roleRepository.save(newRole);
+        });
+
         user.setRoles(Collections.singletonList(userRole));
         return userRepository.save(user);
     }
@@ -45,7 +48,7 @@ public class UserService implements IUserService {
     @Override
     public void deleteUser(String email) {
         User theUser = getUser(email);
-        if (theUser != null){
+        if (theUser != null) {
             userRepository.deleteByEmail(email);
         }
 

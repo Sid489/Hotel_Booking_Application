@@ -28,8 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/rooms")
@@ -60,12 +58,12 @@ public class RoomController {
         List<RoomResponse> roomResponses = new ArrayList<>();
         for (Room room : rooms) {
             byte[] photoBytes = roomService.getRoomPhotoByRoomId(room.getId());
+            RoomResponse roomResponse = getRoomResponse(room);
             if (photoBytes != null && photoBytes.length > 0) {
                 String base64Photo = Base64.encodeBase64String(photoBytes);
-                RoomResponse roomResponse = getRoomResponse(room);
                 roomResponse.setPhoto(base64Photo);
-                roomResponses.add(roomResponse);
             }
+            roomResponses.add(roomResponse);
         }
         return ResponseEntity.ok(roomResponses);
     }

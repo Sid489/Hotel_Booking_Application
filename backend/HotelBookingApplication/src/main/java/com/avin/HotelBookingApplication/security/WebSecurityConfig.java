@@ -1,6 +1,5 @@
 package com.avin.HotelBookingApplication.security;
 
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,9 +24,11 @@ import com.avin.HotelBookingApplication.security.jwt.AuthTokenFilter;
 import com.avin.HotelBookingApplication.security.jwt.JwtAuthEntryPoint;
 import com.avin.HotelBookingApplication.security.user.HotelUserDetailsService;
 
-
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
+@EnableWebSecurity
 @RequiredArgsConstructor
 @EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true, prePostEnabled = true)
 public class WebSecurityConfig {
@@ -35,9 +36,10 @@ public class WebSecurityConfig {
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
 
     @Bean
-    public AuthTokenFilter authenticationTokenFilter(){
+    public AuthTokenFilter authenticationTokenFilter() {
         return new AuthTokenFilter();
     }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -58,13 +60,26 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer :: disable)
+        http.csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(request -> {
+                    var corsConfiguration = new org.springframework.web.cors.CorsConfiguration();
+                    corsConfiguration
+                            .setAllowedOrigins(java.util.List.of("http://localhost:5173", "http://localhost:5174"));
+                    corsConfiguration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    corsConfiguration.setAllowedHeaders(java.util.List.of("*"));
+                    corsConfiguration.setAllowCredentials(true);
+                    return corsConfiguration;
+                }))
                 .exceptionHandling(
                         exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/rooms/**","/bookings/**")
-                        .permitAll().requestMatchers("/roles/**").hasRole("ADMIN")
+                        .requestMatchers(new AntPathRequestMatcher("/")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/auth/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/rooms/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/bookings/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/roles/**")).hasRole("ADMIN")
                         .anyRequest().authenticated());
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authenticationTokenFilter(), UsernamePasswordAuthenticationFilter.class);
@@ -73,12 +88,8 @@ public class WebSecurityConfig {
 
     // @Bean(name = "multipartResolver")
     // public CommonsMultipartResolver multipartResolver() {
-    //     CommonsMultipartResolver multipartResolver = new CommonsMultipartResolver();
-    //     return multipartResolver;
+    // CommonsMultipartResolver multipartResolver = new CommonsMultipartResolver();
+    // return multipartResolver;
     // }
-
-
-
-
 
 }
